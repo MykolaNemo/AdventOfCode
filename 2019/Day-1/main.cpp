@@ -1,41 +1,48 @@
 #include <iostream>
-#include <sstream>
 #include <fstream>
 #include <string>
 #include <vector>
 
-int main()
+void part1(const std::vector<int>& moduleMasses)
 {
-  std::vector<int> moduleMasses;
-
-  std::ifstream infile("input.txt");
-  std::string line;
-  while (std::getline(infile, line))
+  int totalFuel = 0;
+  for(int mass : moduleMasses)
   {
-    std::istringstream iss(line);
-    int moduleMass = 0;
-    if (!(iss >> moduleMass))
-    {
-      std::cout << "Error!" << std::endl;
-      break;
-    } // error
-    moduleMasses.push_back(moduleMass);
+    totalFuel += mass/3-2;
   }
+  std::cout<<"[Part1] Fuel required:"<<totalFuel<<std::endl;
+}
+
+void part2(const std::vector<int>& moduleMasses)
+{
   int totalFuel = 0;
   for(int mass : moduleMasses)
   {
     int fuel = 0;
-    int m = mass;
     do
     {
-      int f = m/3-2;
+      int f = mass/3-2;
       f = (f < 0) ? 0 : f;
-      m = f;
+      mass = f;
       fuel += f;
     }
-    while(m > 0);
+    while(mass > 0);
     totalFuel += fuel;
   }
-  std::cout<<totalFuel<<std::endl;
+  std::cout<<"[Part2] Fuel required:"<<totalFuel<<std::endl;
+}
+
+int main()
+{
+  std::vector<int> moduleMasses;
+  std::ifstream infile("input.txt");
+  std::string massString;
+  while (std::getline(infile, massString))
+  {
+    moduleMasses.push_back(std::stoi(massString));
+  }
+
+  part1(moduleMasses);
+  part2(moduleMasses);
   return 0;
 }
