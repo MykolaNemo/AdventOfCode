@@ -4,226 +4,171 @@
 #include <string>
 #include <vector>
 
-struct Wire
+struct Point
 {
-  char side = '0';
-  int distance = 0;
+  Point(){}
+  Point(int _x, int _y): x(_x), y(_y){}
+  int x = 0;
+  int y = 0;
 };
 
-int main()
+struct Intersection
 {
-  std::ifstream infile("input.txt");
+  Intersection(int mDist, int aDist): manhattenDistance(mDist), absoluteDistance(aDist){}
+  int manhattenDistance = 0;
+  int absoluteDistance = 0;
+};
 
-  std::vector<Wire> wires1;
-  std::vector<Wire> wires2;
+std::ostream& operator<< (std::ostream& stream, const Point& point)
+{
+  stream<<'('<<point.x<<", "<<point.y<<')';
+  return stream;
+}
 
-  std::string wire1String;
-  std::string wire2String;
-  std::getline(infile, wire1String);
-  std::getline(infile, wire2String);
+struct Wire
+{
+  Wire(char dir, int length): direction(dir), length(length){}
+  char direction = '0';
+  int length = 0;
+};
 
-  std::string direction;
-  std::stringstream stream(wire1String);
-  while(std::getline(stream, direction, ',') )
+Point endOfTheWire(const Point& startPoint, const Wire& wire)
+{
+  Point endPoint = startPoint;
+  switch (wire.direction)
   {
-    char side = direction[0];
-    int distance = std::stoi(direction.substr(1, direction.length()-1));
-    Wire w;
-    w.side = side;
-    w.distance = distance;
-    wires1.push_back(w);
+  case 'R':
+    endPoint.x += wire.length;
+    break;
+  case 'L':
+    endPoint.x -= wire.length;
+    break;
+  case 'U':
+    endPoint.y += wire.length;
+    break;
+  case 'D':
+    endPoint.y -= wire.length;
+    break;
   }
+  return endPoint;
+}
 
-  std::stringstream stream2(wire2String);
-  while(std::getline(stream2, direction, ',') )
-  {
-    char side = direction[0];
-    int distance = std::stoi(direction.substr(1, direction.length()-1));
-    Wire w;
-    w.side = side;
-    w.distance = distance;
-    wires2.push_back(w);
-  }
+bool inBetweenX(const Point& end1, const Point& between, const Point& end2)
+{
+  return (((end1.x < between.x) && (between.x < end2.x)) || ((end2.x < between.x) && (between.x < end1.x)));
+}
 
-  std::vector<int> intersections;
+bool inBetweenY(const Point& end1, const Point& between, const Point& end2)
+{
+  return (((end1.y < between.y) && (between.y < end2.y)) || ((end2.y < between.y) && (between.y < end1.y)));
+}
 
-  int x1w1 = 0;
-  int y1w1 = 0;
-  int x2w1 = 0;
-  int y2w1 = 0;
+bool areCrossed(const Point& start1, const Point& end1, const Point& start2, const Point& end2)
+{
+  bool crossed = inBetweenX(start1, start2, end1) && inBetweenY(start2, start1, end2);
+  crossed |= (inBetweenX(start2, start1, end2) && inBetweenY(start1, start2, end1));
+  return crossed;
+}
+
+void solution(const std::vector<Wire>& wires1, const std::vector<Wire>& wires2)
+{
+  std::vector<Intersection> intersections;
+
+  Point w1PointStart, w1PointEnd;
   int wire1TotalDistance = 0;
-  for(Wire w1 : wires1)
+  for(const Wire &wire1 : wires1)
   {
-    switch (w1.side)
-    {
-    case 'R':
-      x2w1 += w1.distance;
-      break;
-    case 'L':
-      x2w1 -= w1.distance;
-      break;
-    case 'U':
-      y2w1 += w1.distance;
-      break;
-    case 'D':
-      y2w1 -= w1.distance;
-      break;
-    }
-    wire1TotalDistance += w1.distance;
-//    std::cout<<x1w1<<","<<y1w1<<" "<<x2w1<<","<<y2w1<<"\n";
+    wire1TotalDistance += wire1.length;
+    w1PointEnd = endOfTheWire(w1PointStart, wire1);
 
-    int x1w2 = 0;
-    int y1w2 = 0;
-    int x2w2 = 0;
-    int y2w2 = 0;
+    Point w2PointStart, w2PointEnd;
     int wire2TotalDistance = 0;
-    for(Wire w2 : wires2)
+    for(const Wire& wire2 : wires2)
     {
-      switch (w2.side)
-      {
-      case 'R':
-        x2w2 += w2.distance;
-        break;
-      case 'L':
-        x2w2 -= w2.distance;
-        break;
-      case 'U':
-        y2w2 += w2.distance;
-        break;
-      case 'D':
-        y2w2 -= w2.distance;
-        break;
-      }
-      wire2TotalDistance += w2.distance;
+      wire2TotalDistance += wire2.length;
+      w2PointEnd = endOfTheWire(w2PointStart, wire2);
 
-      switch (w1.side)
+      if(!areCrossed(w1PointStart, w1PointEnd, w2PointStart, w2PointEnd))
       {
-      case 'R':
-        if(w2.side == 'U')
-        {
-          if(((x1w1 < x1w2) && (x1w2 < x2w1)) &&
-             ((y1w2 < y1w1) && (y1w1 < y2w2)))
-          {
-            int distance = wire1TotalDistance + wire2TotalDistance - (w1.distance-(x1w2-x1w1))
-                                                                   - (w2.distance-(y1w1-y1w2));
-            intersections.push_back(distance);
-//            int manhatten = std::abs(x1w2) + std::abs(y1w1);
-//            intersections.push_back(manhatten);
-          }
-        }
-        else if(w2.side == 'D')
-        {
-          if(((x1w1 < x1w2) && (x1w2 < x2w1)) &&
-             ((y1w2 > y1w1) && (y1w1 > y2w2)))
-          {
-            int distance = wire1TotalDistance + wire2TotalDistance - (w1.distance-(x1w2-x1w1))
-                                                                   - (w2.distance-(y1w2 - y1w1));
-            intersections.push_back(distance);
-//            int manhatten = std::abs(x1w2) + std::abs(y1w1);
-//            intersections.push_back(manhatten);
-          }
-        }
-        break;
-      case 'L':
-        if(w2.side == 'U')
-        {
-          if(((x1w1 > x1w2) && (x1w2 > x2w1)) &&
-             ((y1w2 < y1w1) && (y1w1 < y2w2)))
-          {
-            int distance = wire1TotalDistance + wire2TotalDistance - (w1.distance-(x1w1-x1w2))
-                                                                   - (w2.distance-(y1w1 - y1w2));
-            intersections.push_back(distance);
-//            int manhatten = std::abs(x1w2) + std::abs(y1w1);
-//            intersections.push_back(manhatten);
-          }
-        }
-        else if(w2.side == 'D')
-        {
-          if(((x1w1 > x1w2) && (x1w2 > x2w1)) &&
-             ((y1w2 > y1w1) && (y1w1 > y2w2)))
-          {
-            int distance = wire1TotalDistance + wire2TotalDistance - (w1.distance-(x1w1-x1w2))
-                                                                   - (w2.distance-(y1w2 - y1w1));
-            intersections.push_back(distance);
-//            int manhatten = std::abs(x1w2) + std::abs(y1w1);
-//            intersections.push_back(manhatten);
-          }
-        }
-        break;
-      case 'U':
-        if(w2.side == 'R')
-        {
-          if(((x1w2 < x1w1) && (x1w1 < x2w2)) &&
-             ((y1w1 < y1w2) && (y1w2 < y2w1)))
-          {
-            int distance = wire1TotalDistance + wire2TotalDistance - (w2.distance-(x1w1-x1w2))
-                                                                   - (w1.distance-(y1w2 - y1w1));
-            intersections.push_back(distance);
-//            int manhatten = std::abs(x1w1) + std::abs(y1w2);
-//            intersections.push_back(manhatten);
-          }
-        }
-        else if(w2.side == 'L')
-        {
-          if(((x1w2 > x1w1) && (x1w1 > x2w2)) &&
-             ((y1w1 < y1w2) && (y1w2 < y2w1)))
-          {
-            int distance = wire1TotalDistance + wire2TotalDistance - (w2.distance-(x1w2-x1w1))
-                                                                   - (w1.distance-(y1w2 - y1w1));
-            intersections.push_back(distance);
-//            int manhatten = std::abs(x1w1) + std::abs(y1w2);
-//            intersections.push_back(manhatten);
-          }
-        }
-        break;
-      case 'D':
-        if(w2.side == 'R')
-        {
-          if(((x1w2 < x1w1) && (x1w1 < x2w2)) &&
-             ((y1w1 > y1w2) && (y1w2 > y2w1)))
-          {
-            int distance = wire1TotalDistance + wire2TotalDistance - (w2.distance-(x1w1-x1w2))
-                                                                   - (w1.distance-(y1w1 - y1w2));
-            intersections.push_back(distance);
-//            int manhatten = std::abs(x1w1) + std::abs(y1w2);
-//            intersections.push_back(manhatten);
-          }
-        }
-        else if(w2.side == 'L')
-        {
-          if(((x1w2 > x1w1) && (x1w1 > x2w2)) &&
-             ((y1w1 > y1w2) && (y1w2 > y2w1)))
-          {
-            int distance = wire1TotalDistance + wire2TotalDistance - (w2.distance-(x1w2-x1w1))
-                                                                   - (w1.distance-(y1w1 - y1w2));
-            intersections.push_back(distance);
-//            int manhatten = std::abs(x1w1) + std::abs(y1w2);
-//            intersections.push_back(manhatten);
-          }
-        }
-        break;
+        w2PointStart = w2PointEnd;
+        continue;
       }
 
-      x1w2 = x2w2;
-      y1w2 = y2w2;
+      int absoluteDistance = wire1TotalDistance + wire2TotalDistance;
+      int manhattenDistance = 0;
+      switch (wire1.direction)
+      {
+      case 'R':
+      case 'L':
+      {
+        int wire1Partial = wire1.length - std::abs(w2PointStart.x - w1PointStart.x);
+        int wire2Partial = wire2.length - std::abs(w2PointStart.y - w1PointStart.y);
+        absoluteDistance -= (wire1Partial + wire2Partial);
+        manhattenDistance = std::abs(w2PointStart.x) + std::abs(w1PointStart.y);
+        break;
+      }
+      case 'U':
+      case 'D':
+      {
+        int wire1Partial = wire1.length - std::abs(w2PointStart.y - w1PointStart.y);
+        int wire2Partial = wire2.length - std::abs(w2PointStart.x - w1PointStart.x);
+        absoluteDistance -= (wire1Partial + wire2Partial);
+        manhattenDistance = std::abs(w1PointStart.x) + std::abs(w2PointStart.y);
+        break;
+      }
+      }
+      intersections.push_back(Intersection(manhattenDistance, absoluteDistance));
+      w2PointStart = w2PointEnd;
     }
-
-    x1w1 = x2w1;
-    y1w1 = y2w1;
+    w1PointStart = w1PointEnd;
   }
 
   if(!intersections.empty())
   {
-  int min = intersections[0];
-  for(int i :intersections)
-  {
-    if (i < min)
+    int minManhatten = intersections[0].manhattenDistance;
+    int minAbsDistance = intersections[0].absoluteDistance;
+    for(const Intersection& i : intersections)
     {
-      min = i;
+      if (i.manhattenDistance < minManhatten)
+      {
+        minManhatten = i.manhattenDistance;
+      }
+      if (i.absoluteDistance < minAbsDistance)
+      {
+        minAbsDistance = i.absoluteDistance;
+      }
     }
+    std::cout<<"[Part1] Answer: "<<minManhatten<<std::endl;
+    std::cout<<"[Part2] Answer: "<<minAbsDistance<<std::endl;
   }
-  std::cout<<min<<std::endl;
-  }
+}
 
+void parseWire(const std::string& parseString, std::vector<Wire>& wires)
+{
+  std::string directionString;
+  std::stringstream stream(parseString);
+  while(std::getline(stream, directionString, ',') )
+  {
+    char direction = directionString[0];
+    int length = std::stoi(directionString.substr(1, directionString.length()-1));
+
+    wires.push_back(Wire(direction, length));
+  }
+}
+
+int main()
+{
+  std::vector<Wire> wires1, wires2;
+  {
+    std::ifstream infile("input.txt");
+
+    std::string wire1String, wire2String;
+    std::getline(infile, wire1String);
+    std::getline(infile, wire2String);
+
+    parseWire(wire1String, wires1);
+    parseWire(wire2String, wires2);
+  }
+  solution(wires1, wires2);
   return 0;
 }
