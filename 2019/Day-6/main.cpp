@@ -1,183 +1,164 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
-#include <map>
 #include <algorithm>
 
-using namespace std;
-
-struct StarSystem
+struct PlanetSystem
 {
-  std::string sun;
-  std::vector<StarSystem*> planets;
+  std::string name;
+  std::vector<PlanetSystem*> moons;
   int path = 0;
   bool visited = false;
 };
 
-namespace
-{
-std::vector<StarSystem*> universe;
-StarSystem* gStartSystem = nullptr;
-StarSystem* gEndSystem = nullptr;
-int traverseResult = 0;
+std::vector<PlanetSystem*> universe;
 
-void traverseToTheCenter(std::string sun)
+PlanetSystem* systemByStarName(const std::string& starName)
 {
-  if(sun == "COM")
+  auto systemIt = std::find_if(universe.begin(), universe.end(), [&starName](const PlanetSystem* system)->bool{
+    return (system->name == starName);
+  });
+
+  if(systemIt != universe.end())
   {
-    return;
+    return *systemIt;
   }
-  else
-  {
-    auto sunSystemIt = std::find_if(universe.begin(), universe.end(), [&sun](const StarSystem* sys)->bool{
-      for(StarSystem* planet : sys->planets)
-      {
-        if(planet->sun == sun)
-        {
-          return true;
-        }
-      }
-      return false;
-    });
-    if(sunSystemIt != universe.end())
-    {
-      traverseResult++;
-      traverseToTheCenter((*sunSystemIt)->sun);
-    }
-  }
+
+  PlanetSystem* system = new PlanetSystem();
+  system->name = starName;
+  universe.push_back(system);
+  return system;
 }
 
-bool dijkstra(StarSystem* startSystem, StarSystem* endSystem, int& result)
+PlanetSystem* systemByMoonName(const std::string& moonName)
 {
-  startSystem->visited = true;
-
-  if(startSystem->sun == endSystem->sun)
-  {
-    result = startSystem->path;
-    return true;
-  }
-
-  std::vector<StarSystem*> neighbours;
-  for(StarSystem* planetSystem : startSystem->planets)
-  {
-    if((planetSystem->path == 0) && (planetSystem->visited == false))
+  auto starSystemIt = std::find_if(universe.begin(), universe.end(), [&moonName](const PlanetSystem* system)->bool{
+    for(auto moon : system->moons)
     {
-      planetSystem->path = startSystem->path+1;
-      neighbours.push_back(planetSystem);
-    }
-  }
-
-  auto sunSystemIt = std::find_if(universe.begin(), universe.end(), [startSystem](const StarSystem* sys)->bool{
-    for(StarSystem* planet : sys->planets)
-    {
-      if(planet->sun == startSystem->sun)
+      if(moon->name == moonName)
       {
         return true;
       }
     }
     return false;
   });
-  if(sunSystemIt != universe.end())
+
+  if(starSystemIt != universe.end())
   {
-    if(((*sunSystemIt)->path == 0) && ((*sunSystemIt)->visited == false))
+    return *starSystemIt;
+  }
+
+  return nullptr;
+}
+
+void traverseToTheCenter(const std::string& systemName, int& orbitsCount)
+{
+  if(systemName == "COM")
+  {
+    return;
+  }
+  else
+  {
+    PlanetSystem* parentSystem = systemByMoonName(systemName);
+    if(parentSystem)
     {
-      (*sunSystemIt)->path = startSystem->path+1;
-      neighbours.push_back(*sunSystemIt);
+      traverseToTheCenter(parentSystem->name, ++orbitsCount);
+    }
+  }
+}
+
+bool traverseTheUniverse(PlanetSystem* startSystem, PlanetSystem* endSystem, int& steps)
+{
+  startSystem->visited = true;
+
+  if(startSystem->name == endSystem->name)
+  {
+    steps = startSystem->path;
+    return true;
+  }
+
+  std::vector<PlanetSystem*> systemsToVisit;
+  for(PlanetSystem* moon : startSystem->moons)
+  {
+    if((moon->path == 0) && (moon->visited == false))
+    {
+      moon->path = startSystem->path + 1;
+      systemsToVisit.push_back(moon);
     }
   }
 
-  for(StarSystem* neighbour : neighbours)
+  PlanetSystem* parentSystem = systemByMoonName(startSystem->name);
+  if(parentSystem)
   {
-      if(dijkstra(neighbour, endSystem, result))
-      {
-        return true;
-      }
+    if((parentSystem->path == 0) && (parentSystem->visited == false))
+    {
+      parentSystem->path = startSystem->path + 1;
+      systemsToVisit.push_back(parentSystem);
+    }
+  }
+
+  for(PlanetSystem* toVisit : systemsToVisit)
+  {
+    if(traverseTheUniverse(toVisit, endSystem, steps))
+    {
+      return true;
+    }
   }
   return false;
 }
+
+void part1()
+{
+  int orbitsCount = 0;
+  for(auto system : universe)
+  {
+    traverseToTheCenter(system->name, orbitsCount);
+  }
+  std::cout<<"[Part 1] Number of orbits total: "<<orbitsCount<<std::endl;
+}
+
+void part2(PlanetSystem* startSystem, PlanetSystem* endSystem)
+{
+  int result = 0;
+  if(traverseTheUniverse(startSystem, endSystem, result))
+  {
+    std::cout<<"[Part 2] Number of orbit switches: "<<result<<std::endl;
+  }
+  else
+  {
+    std::cout<<"[Part 2] No Santa :("<<std::endl;
+  }
 }
 
 int main()
 {
+  PlanetSystem* StartSystem = nullptr;
+  PlanetSystem* EndSystem = nullptr;
+
   std::ifstream infile("input.txt");
 
-  std::string orbit;
-  while(std::getline(infile, orbit))
+  std::string orbitInfo;
+  while(std::getline(infile, orbitInfo))
   {
-    std::string sun = orbit.substr(0,3);
-    std::string planet = orbit.substr(4,3);
+    std::string starName = orbitInfo.substr(0, 3);
+    std::string moonName = orbitInfo.substr(4, 3);
 
-    auto sunSystemIt = std::find_if(universe.begin(), universe.end(), [&sun](const StarSystem* sys)->bool{
-      return (sys->sun == sun);
-    });
-    auto planetIt = std::find_if(universe.begin(), universe.end(), [&planet](const StarSystem* sys)->bool{
-      return (sys->sun == planet);
-    });
-    if(sunSystemIt == universe.end())
+    PlanetSystem* moonSystem = systemByStarName(moonName);
+    PlanetSystem* starSystem = systemByStarName(starName);
+    starSystem->moons.push_back(moonSystem);
+
+    if(moonName == "YOU")
     {
-      StarSystem* sunSystem = new StarSystem();
-      sunSystem->sun = sun;
-      if(planet == "YOU")
-      {
-        gStartSystem = sunSystem;
-      }
-      if(planet == "SAN")
-      {
-        gEndSystem = sunSystem;
-      }
-
-      if(planetIt == universe.end())
-      {
-        StarSystem* planetSystem = new StarSystem();
-        planetSystem->sun = planet;
-        sunSystem->planets.push_back(planetSystem);
-        universe.push_back(planetSystem);
-      }
-      else
-      {
-        sunSystem->planets.push_back(*planetIt);
-      }
-      universe.push_back(sunSystem);
+      StartSystem = starSystem;
     }
-    else
+    else if(moonName == "SAN")
     {
-      if(planet == "YOU")
-      {
-        gStartSystem = *sunSystemIt;
-      }
-      if(planet == "SAN")
-      {
-        gEndSystem = *sunSystemIt;
-      }
-
-      if(planetIt == universe.end())
-      {
-        StarSystem* planetSystem = new StarSystem();
-        planetSystem->sun = planet;
-        (*sunSystemIt)->planets.push_back(planetSystem);
-        universe.push_back(planetSystem);
-      }
-      else
-      {
-        (*sunSystemIt)->planets.push_back(*planetIt);
-      }
+      EndSystem = starSystem;
     }
   }
+  std::cout<<"FROM "<<StartSystem->name<<" TO "<<EndSystem->name<<"\n";
 
-  std::cout<<"FROM "<<gStartSystem->sun<<" TO "<<gEndSystem->sun<<"\n";
-//  for(const StarSystem& system : universe)
-//  {
-//    traverseToTheCenter(system.sun);
-//  }
-
-  int result = 0;
-  if(dijkstra(gStartSystem, gEndSystem, result))
-  {
-    std::cout<<result<<std::endl;
-  }
-  else
-  {
-    std::cout<<"No Santa :("<<std::endl;
-  }
+  part1();
+  part2(StartSystem, EndSystem);
   return 0;
 }
