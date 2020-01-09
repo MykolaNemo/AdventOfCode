@@ -5,10 +5,12 @@
 #include <iostream>
 #include <map>
 
+using CompInput  = std::vector<intmax_t>;
+using CompOutput = std::vector<intmax_t>;
+
 class Computer
 {
 public:
-
   enum InstructionMode
   {
     Position = 0,
@@ -24,16 +26,20 @@ public:
     Halted = 3
   };
 
-  Computer(int id):
-    mId(id)
+  Computer()
   {
     mState = NotRunning;
   }
 
-  void setProgram(const std::vector<long long>& instructions)
+  void setProgram(const std::vector<intmax_t>& instructions)
   {
     mInstructions = instructions;
     mState = NotRunning;
+  }
+
+  std::vector<intmax_t> getProgram()
+  {
+      return mInstructions;
   }
 
   void clearPointer()
@@ -46,14 +52,20 @@ public:
     return mState;
   }
 
-  void start(std::vector<long long>& input, std::vector<long long> &output)
+  void start()
+  {
+      std::vector<intmax_t> i, o;
+      start(i, o);
+  }
+
+  void start(std::vector<intmax_t>& input, std::vector<intmax_t> &output)
   {
     mState = Running;
     while(true)
     {
-      long long value = mInstructions[mPointer];
+      intmax_t value = mInstructions[mPointer];
 
-      long long code = value%100LL;
+      intmax_t code = value%100LL;
       InstructionMode mode1 = (InstructionMode)((value/100LL)%10LL);
       InstructionMode mode2 = (InstructionMode)((value/1000LL)%10LL);
       InstructionMode mode3 = (InstructionMode)(value/10000LL);
@@ -210,7 +222,7 @@ public:
     mWaitForInput = waitForInput;
   }
 
-  void setWaitAfterOutput(bool waitAfterOutput, int number)
+  void setWaitAfterOutput(bool waitAfterOutput, int number = 1)
   {
     mWaitAfterOutput = waitAfterOutput;
     mWaitAfterOutputCounter = number;
@@ -227,7 +239,7 @@ public:
   }
 
 private:
-  long long paramPos(const long long& pointer, const InstructionMode& mode)
+  intmax_t paramPos(const intmax_t& pointer, const InstructionMode& mode)
   {
     switch(mode)
     {
@@ -251,9 +263,9 @@ private:
     }
   }
 
-  long long& parameter(const long long &paramNumber, const InstructionMode &mode)
+  intmax_t& parameter(const intmax_t &paramNumber, const InstructionMode &mode)
   {
-    long long pos = paramPos(mPointer+paramNumber, mode);
+    intmax_t pos = paramPos(mPointer+paramNumber, mode);
     if(pos >= mInstructions.size())
     {
         auto it = mExtendedInstructions.find(pos);
@@ -270,12 +282,11 @@ private:
     return mInstructions[pos];
   }
 
-  std::vector<long long> mInstructions;
-  std::map<long long, long long> mExtendedInstructions;
-  long long mPointer = 0;
-  int mId;
+  std::vector<intmax_t> mInstructions;
+  std::map<intmax_t, intmax_t> mExtendedInstructions;
+  intmax_t mPointer = 0;
   State mState;
-  long long mRelativeBase = 0;
+  intmax_t mRelativeBase = 0;
   bool mWaitForInput = false;
   bool mWaitAfterOutput = false;
   int mWaitAfterOutputCounter = 0;

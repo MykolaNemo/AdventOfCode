@@ -1,24 +1,12 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include "Computer.h"
-
-using namespace std;
-
-//std::string north = "north";
-//std::string south = "south";
-//std::string east = "east";
-//std::string west = "west";
-//std::string take = "take ";
-//std::string drop = "drop ";
-//std::string inventory = "inv";
-
-//std::string password = "password for the main airlock";
+#include "../Computer.h"
 
 int main()
 {
     std::ifstream infile("input.txt");
-    std::vector<long long> program;
+    std::vector<intmax_t> program;
 
     std::string code;
     while(std::getline(infile, code, ','))
@@ -27,8 +15,8 @@ int main()
     }
 
     std::string commandString;
-    std::vector<long long> input;
-    std::vector<long long> output;
+    std::vector<intmax_t> input;
+    std::vector<intmax_t> output;
     Computer comp(0);
     comp.setProgram(program);
     comp.setWaitForInput(true);
@@ -40,9 +28,9 @@ int main()
         std::getline(std::cin, commandString);
         for(auto& c : commandString)
         {
-            input.push_back((long long)c);
+            input.push_back((intmax_t)c);
         }
-        input.push_back((long long)'\n');
+        input.push_back((intmax_t)'\n');
     }
     return 0;
 }

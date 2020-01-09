@@ -8,6 +8,3 @@ SOURCES += \
 
 DISTFILES += \
     input.txt
-
-HEADERS += \
-    ../Computer.h

@@ -1,6 +1,5 @@
 #include <iostream>
-
-using namespace std;
+#include <string>
 
 //#define PART1
 

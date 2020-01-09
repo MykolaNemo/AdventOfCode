@@ -1,10 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
-#include <sstream>
-#include <algorithm>
-#include <map>
 #include <string>
+#include <map>
 
 using namespace std;
 
@@ -15,83 +13,80 @@ enum Color
   Transparent = 2
 };
 
-int main()
-{
-    std::ifstream infile("input.txt");
-    std::string imageMessage;
-    std::getline(infile, imageMessage);
+int imageWidth = 25;
+int imageHeight = 6;
+const int pixelsNumber = imageWidth*imageHeight;
 
-    std::vector<int> imagePixels;
-    for(char c : imageMessage)
+std::vector<int> image;
+std::vector<std::vector<int> > imageLayers;
+
+void part1()
+{
+    int pos = 0;
+    std::map<int, int> minColorsCount{{Black,-1}, {White,-1}, {Transparent,-1}};
+    while(pos < image.size())
     {
-        imagePixels.push_back(c - '0');
+        std::map<int, int> colorsCount;
+        std::vector<int> layer;
+        for(int i = pos; i < pos+pixelsNumber; ++i)
+        {
+            colorsCount[image[i]]++;
+        }
+        if((minColorsCount[Black] < 0) || (colorsCount[Black] < minColorsCount[Black]))
+        {
+            minColorsCount = colorsCount;
+        }
+        pos += pixelsNumber;
+    }
+    std::cout<<"[Part 1] Answer: "<<minColorsCount[1] * minColorsCount[2]<<std::endl;
+}
+
+void part2()
+{
+    std::vector<int> displayImage;///25x6
+    for(int pos = 0; pos < pixelsNumber; ++pos)
+    {
+        displayImage.push_back(Transparent);
     }
 
-    std::vector<std::vector<int> > layers;
-
+    // form layers
     int pos = 0;
-//    std::map<int, int> minCount{{0,-1},{1,-1},{2,-1}};
-    while(pos < imagePixels.size())
+    while(pos < image.size())
     {
         std::vector<int> layer;
-//        std::map<int, int> count;
-        for(int i = pos; i < pos+150; ++i)
+        for(int i = pos; i < pos+pixelsNumber; ++i)
         {
-//            if(imagePixels[i] == 0)
-//            {
-//                count[0]++;
-//            }
-//            else if(imagePixels[i] == 1)
-//            {
-//                count[1]++;
-//            }
-//            else if(imagePixels[i] == 2)
-//            {
-//                count[2]++;
-//            }
-            layer.push_back(imagePixels[i]);
+            layer.push_back(image[i]);
         }
-//        if((minCount[0] < 0) || (count[0] < minCount[0]))
-//        {
-//            minCount = count;
-//        }
-        layers.push_back(layer);
-        pos += 150;
-//        std::cout<<layer.size()<<std::endl;
-    }
-//    std::cout<<minCount[1]*minCount[2]<<std::endl;
-
-    std::vector<int> imageResult;///25x6
-    for(int pos = 0; pos < 6*25; ++pos)
-    {
-        imageResult.push_back((int)Transparent);
+        imageLayers.push_back(layer);
+        pos += pixelsNumber;
     }
 
-    for(int l = 0; l < layers.size(); ++l)
+    //convert from space to display format
+    for(int l = 0; l < imageLayers.size(); ++l)
     {
-        for(int pos = 0; pos < 6*25; ++pos)
+        for(int pos = 0; pos < pixelsNumber; ++pos)
         {
-            if(imageResult[pos] == (int)Transparent)
+            if(displayImage[pos] == Transparent)
             {
-                imageResult[pos] = layers[l][pos];
+                displayImage[pos] = imageLayers[l][pos];
             }
-            std::cout<<layers[l][pos];
         }
-        std::cout<<std::endl;
     }
-    for(int row = 0; row < 6; ++row)
+
+    std::cout<<"[Part 2] Image\n";
+    //display image
+    for(int row = 0; row < imageHeight; ++row)
     {
-        for(int col = 0; col < 25; ++col)
+        for(int col = 0; col < imageWidth; ++col)
         {
-            int value = imageResult[row*25 + col];
+            int value = displayImage[row*imageWidth + col];
             switch(value)
             {
-            case Black:
-                std::cout<<" ";
-                break;
             case White:
-                std::cout<<".";
+                std::cout<<"*";
                 break;
+            case Black:
             case Transparent:
                 std::cout<<" ";
                 break;
@@ -99,5 +94,20 @@ int main()
         }
         std::cout<<std::endl;
     }
+}
+
+int main()
+{
+    std::ifstream infile("input.txt");
+    std::string imageMessage;
+    std::getline(infile, imageMessage);
+
+    for(char c : imageMessage)
+    {
+        image.push_back(c - '0');
+    }
+
+    part1();
+    part2();
     return 0;
 }

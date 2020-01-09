@@ -5,9 +5,3 @@ CONFIG -= qt
 
 SOURCES += \
         main.cpp
-
-DISTFILES += \
-    input.txt
-
-HEADERS += \
-    ../Computer.h
