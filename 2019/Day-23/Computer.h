@@ -101,14 +101,7 @@ public:
       case 4:
       {
         auto op1 = parameter(1, mode1);
-        if(!mAsciiOutput)
-        {
-            output.push_back(op1);
-        }
-        else
-        {
-            std::cout<<(char)op1;
-        }
+        output.push_back(op1);
         mPointer += 2;
 
         if(mWaitAfterOutput)
@@ -221,11 +214,6 @@ public:
     mMultiThreading = multiThreading;
   }
 
-  void setASCIIOutput(bool ascii)
-  {
-      mAsciiOutput = ascii;
-  }
-
 private:
   long long paramPos(const long long& pointer, const InstructionMode& mode)
   {
@@ -280,6 +268,5 @@ private:
   bool mWaitAfterOutput = false;
   int mWaitAfterOutputCounter = 0;
   bool mMultiThreading = false;
-  bool mAsciiOutput = false;
 };
 #endif // COMPUTER_H

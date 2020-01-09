@@ -87,10 +87,10 @@ int main()
             switch(value)
             {
             case Black:
-                std::cout<<".";
+                std::cout<<" ";
                 break;
             case White:
-                std::cout<<"@";
+                std::cout<<".";
                 break;
             case Transparent:
                 std::cout<<" ";

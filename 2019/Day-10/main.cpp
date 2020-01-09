@@ -1,8 +1,10 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <string>
 #include <map>
 #include <algorithm>
+#define _USE_MATH_DEFINES
 #include <math.h>
 
 namespace{
@@ -159,7 +161,7 @@ int main()
     a.distance = hypotenusa;
   }
 
-  std::sort(asteroids.begin(), asteroids.end(), [](Asteroid& a1, Asteroid& a2)->bool{
+  std::sort(asteroids.begin(), asteroids.end(), [](const Asteroid& a1, const Asteroid& a2)->bool{
     if(std::abs(a1.angle - a2.angle) < 0.000001)
     {
       return a1.distance < a1.distance;

@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <iostream>
-#include <map>
 
 class Computer
 {
@@ -53,10 +52,10 @@ public:
     {
       long long value = mInstructions[mPointer];
 
-      long long code = value%100LL;
-      InstructionMode mode1 = (InstructionMode)((value/100LL)%10LL);
-      InstructionMode mode2 = (InstructionMode)((value/1000LL)%10LL);
-      InstructionMode mode3 = (InstructionMode)(value/10000LL);
+      long long code = value%100L;
+      InstructionMode mode1 = (InstructionMode)((value/100)%10);
+      InstructionMode mode2 = (InstructionMode)((value/1000)%10);
+      InstructionMode mode3 = (InstructionMode)(value/10000);
       if((mode1 < 0 || mode2 < 0 || mode3 < 0) || (mode1 > 2 || mode2 > 2 || mode3 > 2))
       {
         std::cout<<"Incorrect mode!"<<std::endl;
@@ -66,33 +65,35 @@ public:
       {
       case 1:
       {
-        auto op1 = parameter(1, mode1);
-        auto op2 = parameter(2, mode2);
-        auto &op3 = parameter(3, mode3);
+        long long op1 = parameter(1, mode1);
+        long long op2 = parameter(2, mode2);
+        long long &op3 = parameter(3, mode3);
         op3 = op1 + op2;
         mPointer += 4;
         break;
       }
       case 2:
       {
-        auto op1 = parameter(1, mode1);
-        auto op2 = parameter(2, mode2);
-        auto &op3 = parameter(3, mode3);
+        long long op1 = parameter(1, mode1);
+        long long op2 = parameter(2, mode2);
+        long long &op3 = parameter(3, mode3);
         op3 = op1 * op2;
         mPointer += 4;
         break;
       }
       case 3:
       {
+//          std::cout<<"input.size(): "<<input.size()<<std::endl;
         if(!input.empty())
         {
-          auto &op1 = parameter(1, mode1);
+          long long &op1 = parameter(1, mode1);
           op1 = input[0];
           input.erase(input.begin());
           mPointer += 2;
         }
         else if(mWaitForInput)
         {
+//            std::cout<<"Wait for input..."<<std::endl;
           mState = Suspended;
           return;
         }
@@ -100,21 +101,15 @@ public:
       }
       case 4:
       {
-        auto op1 = parameter(1, mode1);
-        if(!mAsciiOutput)
-        {
-            output.push_back(op1);
-        }
-        else
-        {
-            std::cout<<(char)op1;
-        }
+        long long op1 = parameter(1, mode1);
+        output.push_back(op1);
         mPointer += 2;
 
         if(mWaitAfterOutput)
         {
           if(output.size() == mWaitAfterOutputCounter)
           {
+//              std::cout<<"Wait for output..."<<std::endl;
             mState = Suspended;
             return;
           }
@@ -123,8 +118,8 @@ public:
       }
       case 5:
       {
-        auto op1 = parameter(1, mode1);
-        auto op2 = parameter(2, mode2);
+        long long op1 = parameter(1, mode1);
+        long long op2 = parameter(2, mode2);
         if(op1 != 0)
         {
           mPointer = op2;
@@ -137,8 +132,8 @@ public:
       }
       case 6:
       {
-        auto op1 = parameter(1, mode1);
-        auto op2 = parameter(2, mode2);
+        long long op1 = parameter(1, mode1);
+        long long op2 = parameter(2, mode2);
         if(op1 == 0)
         {
           mPointer = op2;
@@ -151,9 +146,9 @@ public:
       }
       case 7:
       {
-        auto op1 = parameter(1, mode1);
-        auto op2 = parameter(2, mode2);
-        auto &op3 = parameter(3, mode3);
+        long long op1 = parameter(1, mode1);
+        long long op2 = parameter(2, mode2);
+        long long &op3 = parameter(3, mode3);
         if(op1 < op2)
         {
           op3 = 1;
@@ -167,9 +162,9 @@ public:
       }
       case 8:
       {
-        auto op1 = parameter(1, mode1);
-        auto op2 = parameter(2, mode2);
-        auto &op3 = parameter(3, mode3);
+        long long op1 = parameter(1, mode1);
+        long long op2 = parameter(2, mode2);
+        long long &op3 = parameter(3, mode3);
         if(op1 == op2)
         {
           op3 = 1;
@@ -183,7 +178,7 @@ public:
       }
       case 9:
       {
-        auto op1 = parameter(1, mode1);
+        long long op1 = parameter(1, mode1);
         mRelativeBase += op1;
         mPointer += 2;
         break;
@@ -197,11 +192,6 @@ public:
         std::cout<<"Unknown instruction: "<<code<<std::endl;
         throw std::exception();
       }
-      if(mMultiThreading)
-      {
-          mState = Suspended;
-          return;
-      }
     }
   }
 
@@ -214,16 +204,6 @@ public:
   {
     mWaitAfterOutput = waitAfterOutput;
     mWaitAfterOutputCounter = number;
-  }
-
-  void setMultiThreading(bool multiThreading)
-  {
-    mMultiThreading = multiThreading;
-  }
-
-  void setASCIIOutput(bool ascii)
-  {
-      mAsciiOutput = ascii;
   }
 
 private:
@@ -251,27 +231,22 @@ private:
     }
   }
 
-  long long& parameter(const long long &paramNumber, const InstructionMode &mode)
+  long long& parameter(const int &paramNumber, const InstructionMode &mode)
   {
     long long pos = paramPos(mPointer+paramNumber, mode);
-    if(pos >= mInstructions.size())
+    int oldSize = mInstructions.size();
+    while(pos >= mInstructions.size())
     {
-        auto it = mExtendedInstructions.find(pos);
-        if(it == mExtendedInstructions.end())
-        {
-            mExtendedInstructions[pos] = 0;
-            return mExtendedInstructions[pos];
-        }
-        else
-        {
-            return mExtendedInstructions[pos];
-        }
+      mInstructions.resize(mInstructions.size()*2);
+      for(int i = oldSize; i < mInstructions.size(); ++i)
+      {
+        mInstructions[i] = 0;
+      }
     }
     return mInstructions[pos];
   }
 
   std::vector<long long> mInstructions;
-  std::map<long long, long long> mExtendedInstructions;
   long long mPointer = 0;
   int mId;
   State mState;
@@ -279,7 +254,5 @@ private:
   bool mWaitForInput = false;
   bool mWaitAfterOutput = false;
   int mWaitAfterOutputCounter = 0;
-  bool mMultiThreading = false;
-  bool mAsciiOutput = false;
 };
 #endif // COMPUTER_H

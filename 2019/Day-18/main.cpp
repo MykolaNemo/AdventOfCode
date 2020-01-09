@@ -7,21 +7,12 @@
 #include <iomanip>
 #include <set>
 #include <list>
+#include <string>
 
 using namespace std;
 
-struct MapObject;
-//struct PartialMap;
-
-//using DoorsMap = std::map<char, std::pair<int, int>>;
-//using KeysVector = std::vector<std::pair<MapObject, int>>;
 using MapOfSymbols = std::vector<std::string>;
 using MapOfSteps = std::vector<std::vector<int>>;
-
-std::map<MapObject, std::map<MapObject, int>> stepsBetweenKeys;
-std::vector<MapObject> doors;
-
-int globalId = 1;
 
 struct MapObject
 {
@@ -34,7 +25,6 @@ struct MapObject
   };
 
   MapObject(){}
-  MapObject(char _name, std::pair<int, int> _coords, Type _type): symbol(_name), x(_coords.first), y(_coords.second), type(_type){}
   MapObject(char _name, int _x, int _y, Type _type): symbol(_name), x(_x), y(_y), type(_type){}
 
   char symbol = ' ';
@@ -43,35 +33,24 @@ struct MapObject
   Type type = Type::Unknown;
 };
 
-struct Tree
+struct Path
 {
-  Tree(){}
-  Tree(MapObject object): value(std::move(object)){}
-
-  Tree* parent = nullptr;
-  std::vector<Tree*> children;
-  MapObject value;
+    Path(){}
+    Path(int _steps): steps(_steps){}
+    int steps = 0;
+    std::vector<MapObject> objectsOnWay;
 };
 
-//struct Tile
-//{
-//  char symbol;
-//  int steps;
-//};
-
-struct PartialMap
+struct State
 {
-  PartialMap()
-  {
-    id = globalId;
-    globalId++;
-  }
-  int id;
-//  MapOfSymbols map;
-  std::vector<MapObject> keys;
-  std::vector<MapObject> doors;
-  std::map<MapObject, std::pair<int,int>> pointsBeforeDoors;
+    std::set<MapObject> gatheredKeys;
+    MapObject currentKey;
+    int steps;
 };
+
+std::map<MapObject, std::map<MapObject, Path>> stepsBetweenKeys;
+std::vector<MapObject> allDoors;
+std::vector<MapObject> allKeys;
 
 bool operator <(const MapObject& first, const MapObject& second)
 {
@@ -83,60 +62,9 @@ bool operator ==(const MapObject& first, const MapObject& second)
   return first.symbol == second.symbol;
 }
 
-
-//template<typename T>
-//std::vector<std::vector<T>> permutations(const std::vector<T>& input)
-//{
-//    const auto swap = [](T& a, T& b){
-//        T t = a;
-//        a = b;
-//        b = t;
-//    };
-
-//    std::vector<std::vector<T>> result;
-//    const std::function<void(size_t, std::vector<T>&)> generate =
-//    [&generate, &swap, &result](size_t k, std::vector<T>& input){
-//        if (k == 1)
-//        {
-//            result.push_back(input);
-//        }
-//        else
-//        {
-//            for (int i = 0; i < k; ++i)
-//            {
-//                generate(k - 1, input);
-//                if (k % 2 == 0)
-//                {
-//                    swap(input[i], input[k-1]);
-//                }
-//                else
-//                {
-//                    swap(input[0], input[k-1]);
-//                }
-//            }
-//        }
-//        return std::vector<T>();
-//    };
-
-//    std::vector<T> temp = input;
-//    generate(input.size(), temp);
-
-//    return result;
-//}
-
-template<typename T>
-void printMap(std::vector<T>& v)
+char keyForDoor(char door)
 {
-  for(T& e : v)
-  {
-    std::cout<<e<<std::endl;
-  }
-  std::cout<<std::endl;
-}
-
-char doorForKey(char key)
-{
-  return (key - 0x20);
+  return (door + 0x20);
 }
 
 MapObject findObject(int x, int y, const MapOfSymbols& map)
@@ -210,100 +138,46 @@ int findMinSteps(int x, int y, const MapOfSteps& stepsMap)
   return minSteps;
 }
 
-//PartialMap* openDoor(const MapObject& key, std::list<PartialMap*>& partialMaps, PartialMap* currentMap)
-//{
-//  char doorName = doorForKey(key.symbol);
-//  auto doorIt = std::find_if(doors.begin(), doors.end(), [&doorName](const MapObject& door){
-//    return door.symbol == doorName;
-//  });
-//  if(doorIt == doors.end())
-//  {
-//    return currentMap;
-//  }
-
-//  MapObject openedDoor = *doorIt;
-
-//  bool returnCurrentMap = false;
-//  auto it = std::find(currentMap->doors.begin(), currentMap->doors.end(), openedDoor);
-//  if(it == currentMap->doors.end())
-//  {
-//    returnCurrentMap = true;
-//  }
-
-//  PartialMap* first = nullptr;
-//  PartialMap* second = nullptr;
-//  {
-//    auto partialMapWithDoor = [&openedDoor](PartialMap* map)->bool{
-//      return (std::find(map->doors.begin(), map->doors.end(), openedDoor) != map->doors.end());
-//    };
-
-//    auto it1 = std::find_if(partialMaps.begin(), partialMaps.end(), partialMapWithDoor);
-//    if(it1 == partialMaps.end())
-//    {
-//      return nullptr;
-//    }
-//    else
-//    {
-//      first = *it1;
-//      it1 = partialMaps.erase(it1);
-//      auto removeIt = std::remove(first->doors.begin(),first->doors.end(), openedDoor);
-//      first->doors.erase(removeIt, first->doors.end());
-//      first->pointsBeforeDoors.erase(openedDoor);
-//    }
-
-//    auto it2 = std::find_if(it1, partialMaps.end(), partialMapWithDoor);
-//    if(it2 == partialMaps.end())
-//    {
-//      return nullptr;
-//    }
-//    else
-//    {
-//      second = *it2;
-//      partialMaps.erase(it2);
-//      auto removeIt = std::remove(second->doors.begin(),second->doors.end(), openedDoor);
-//      second->doors.erase(removeIt, second->doors.end());
-//      second->pointsBeforeDoors.erase(openedDoor);
-//    }
-//  }
-
-//  PartialMap* merged = new PartialMap();
-//  for(MapObject& door : first->doors)
-//  {
-//    merged->doors.push_back(door);
-//  }
-//  for(MapObject& door : second->doors)
-//  {
-//    merged->doors.push_back(door);
-//  }
-//  for(MapObject& key : first->keys)
-//  {
-//    merged->keys.push_back(key);
-//  }
-//  for(MapObject& key : second->keys)
-//  {
-//    merged->keys.push_back(key);
-//  }
-//  for(auto& [door, point] : first->pointsBeforeDoors)
-//  {
-//    merged->pointsBeforeDoors[door] = point;
-//  }
-//  for(auto& [door, point] : second->pointsBeforeDoors)
-//  {
-//    merged->pointsBeforeDoors[door] = point;
-//  }
-//  delete first;
-//  delete second;
-//  partialMaps.push_back(merged);
-
-//  if(returnCurrentMap)
-//  {
-//    return currentMap;
-//  }
-//  else
-//  {
-//    return merged;
-//  }
-//}
+std::vector<MapObject> gatherObjectsOnTheWay(const MapObject& from, const MapObject& to,
+                                   const MapOfSteps& stepsMap, const MapOfSymbols& map)
+{
+    std::vector<MapObject> objects;
+    int x = from.x;
+    int y = from.y;
+    while((x != to.x) || (y != to.y))
+    {
+        if(stepsMap[y-1][x]+1 == stepsMap[y][x] && (stepsMap[y-1][x] != -1))
+        {
+            y--;
+        }
+        else if(stepsMap[y][x+1]+1 == stepsMap[y][x] && (stepsMap[y][x+1] != -1))
+        {
+            x++;
+        }
+        else if(stepsMap[y+1][x]+1 == stepsMap[y][x] && (stepsMap[y+1][x] != -1))
+        {
+            y++;
+        }
+        else if(stepsMap[y][x-1]+1 == stepsMap[y][x] && (stepsMap[y][x-1] != -1))
+        {
+            x--;
+        }
+        MapObject object = findObject(x, y, map);
+        if(object.type == MapObject::Type::Door)
+        {
+            auto it = std::find(allDoors.begin(), allDoors.end(), object);
+            if(it != allDoors.end())
+            {
+                objects.push_back(object);
+            }
+        }
+        else if(object.type == MapObject::Type::Key)
+        {
+            objects.push_back(object);
+        }
+    }
+    return objects;
+}
 
 void calculateDistancesToKeys(const MapObject& startObject, const MapOfSymbols& map)
 {
@@ -349,8 +223,9 @@ void calculateDistancesToKeys(const MapObject& startObject, const MapOfSymbols& 
       MapObject key = findObject(visitX, visitY, map);
       if(key.type == MapObject::Type::Key)
       {
-        stepsBetweenKeys[startObject][key] = stepsMap[visitY][visitX];
-        stepsBetweenKeys[key][startObject] = stepsMap[visitY][visitX];
+        Path path(stepsMap[visitY][visitX]);
+        path.objectsOnWay = gatherObjectsOnTheWay(key, startObject, stepsMap, map);
+        stepsBetweenKeys[startObject][key] = path;
       }
     }
 
@@ -362,331 +237,94 @@ void calculateDistancesToKeys(const MapObject& startObject, const MapOfSymbols& 
   }
 }
 
-//bool isMapBehindTheDoorExists(const MapObject& door, const std::pair<int,int>& pointBeforeDoors, std::list<PartialMap*> partialMaps)
-//{
-//  if(door.type == MapObject::Type::Door)
-//  {
-//    for(PartialMap* map : partialMaps)
-//    {
-//      if(map->pointsBeforeDoors[door] == pointBeforeDoors)
-//      {
-//        continue;
-//      }
-
-//      if(std::find(map->doors.begin(), map->doors.end(), door) != map->doors.end())
-//      {
-//        return true;
-//      }
-//    }
-//  }
-//  return false;
-//}
-
-//PartialMap* CreatePartialMap(int startX, int startY, const MapOfSymbols& map)
-//{
-//  PartialMap* partialMap = new PartialMap();
-
-//  int visitX = -1;
-//  int visitY = -1;
-//  std::vector<std::pair<int, int>> visited;
-//  std::vector<std::pair<int, int>> toVisit;
-//  toVisit.push_back({startX, startY});
-//  {
-//    MapObject obj = findObject(startX, startY, map);
-//    if(obj.type == MapObject::Type::Key)
-//    {
-//      partialMap->keys.push_back(obj);
-//    }
-//    else if(obj.type == MapObject::Type::Door)
-//    {
-//      partialMap->doors.push_back(obj);
-//      for(auto& way : findWays(obj.x, obj.y, map))
-//      {
-//        MapObject door = findObject(way.first, way.second, map);
-//        if(door.type == MapObject::Type::Door)
-//        {
-//          partialMap->doors.push_back(door);
-//          partialMap->pointsBeforeDoors[obj] = {door.x,door.y};
-//          partialMap->pointsBeforeDoors[door] = {obj.x,obj.y};
-//          return partialMap;
-//        }
-//      }
-//    }
-//  }
-
-//  while(!toVisit.empty())
-//  {
-//    visitX = toVisit.front().first;
-//    visitY = toVisit.front().second;
-//    for(auto& way : findWays(visitX, visitY, map))
-//    {
-//      auto itVisited = std::find(visited.begin(), visited.end(), way);
-//      auto itToVisit = std::find(toVisit.begin(), toVisit.end(), way);
-//      if(itVisited == visited.end() && itToVisit == toVisit.end())
-//      {
-//        int neighbourX = way.first;
-//        int neighbourY = way.second;
-
-//        MapObject obj = findObject(neighbourX, neighbourY, map);
-//        if(obj.type == MapObject::Type::Door)
-//        {
-//          doors.push_back(obj);
-//          partialMap->doors.push_back(obj);
-//          partialMap->pointsBeforeDoors[obj] = {visitX,visitY};
-//        }
-//        else if(obj.type == MapObject::Type::Key)
-//        {
-//          partialMap->keys.push_back(obj);
-//        }
-
-//        if(obj.type != MapObject::Type::Door)
-//        {
-//          toVisit.push_back(way);
-//        }
-//      }
-//    }
-
-//    visited.push_back({visitX, visitY});
-//    if(!toVisit.empty())
-//    {
-//      toVisit.erase(std::remove(toVisit.begin(), toVisit.end(), toVisit.front()), toVisit.end());
-//    }
-//  }
-//  return partialMap;
-//}
-
-//void CreatePartialMaps(int startX, int startY, const MapOfSymbols& map, std::list<PartialMap*>& partialMaps)
-//{
-//  PartialMap* partialMap = CreatePartialMap(startX, startY, map);
-//  partialMaps.push_back(partialMap);
-
-//  std::set<std::pair<MapObject, std::pair<int,int>> > doorsToCheck;
-//  for(auto door : partialMap->doors)
-//  {
-//    doorsToCheck.insert({door, partialMap->pointsBeforeDoors[door]});
-//  }
-//  while(!doorsToCheck.empty())
-//  {
-//    auto pair = *(doorsToCheck.begin());
-//    doorsToCheck.erase(doorsToCheck.begin());
-
-//    const auto& door = pair.first;
-//    const auto& pointBeforeDoor = pair.second;
-//    if(!isMapBehindTheDoorExists(door, pointBeforeDoor, partialMaps))
-//    {
-//      std::pair<int, int> pointBehindDoor = {door.x,door.y};
-//      if(pointBeforeDoor.first != door.x)
-//      {
-//        (pointBeforeDoor.first < door.x) ? pointBehindDoor.first++ : pointBehindDoor.first--;
-//      }
-//      if(pointBeforeDoor.second != door.y)
-//      {
-//        (pointBeforeDoor.second < door.y) ? pointBehindDoor.second++ : pointBehindDoor.second--;
-//      }
-
-//      auto partialMap = CreatePartialMap(pointBehindDoor.first, pointBehindDoor.second, map);
-//      partialMaps.push_back(partialMap);
-//      for(auto door : partialMap->doors)
-//      {
-//        doorsToCheck.insert({door, partialMap->pointsBeforeDoors[door]});
-//      }
-//    }
-//  }
-//}
-
-//PartialMap* mapCopy(PartialMap* partialMap)
-//{
-//  PartialMap* newMap = new PartialMap();
-//  newMap->id = partialMap->id;
-//  newMap->doors = partialMap->doors;
-//  newMap->keys = partialMap->keys;
-//  newMap->pointsBeforeDoors = partialMap->pointsBeforeDoors;
-//  return newMap;
-//}
-
-//std::list<PartialMap*> mapCopy(std::list<PartialMap*> partialMaps)
-//{
-//  std::list<PartialMap*> mapList;
-//  for(PartialMap* map : partialMaps)
-//  {
-//    mapList.push_back(mapCopy(map));
-//  }
-//  return mapList;
-//}
-
-//int a = 0;
-//long long index = 0;
-//int runForKeys(PartialMap* currentMap, const MapObject& startObject, std::list<PartialMap*>& partialMaps, std::string& seq)
-//{
-//  a++;
-//  if(a > 30)
-//  exit(0);
-//  if(startObject.type == MapObject::Type::Unknown) return 0;
-
-//  if(!currentMap) return 0;
-//  if(currentMap->keys.empty()) return 0;
-
-//  int minSteps = -1;
-//  for(MapObject key: currentMap->keys)
-//  {
-//    std::string s = seq;
-//    s.push_back(key.symbol);
-//    std::list<PartialMap*> partialMapsTemp = mapCopy(partialMaps);
-//    PartialMap* mapCopy = nullptr;
-//    auto it = std::find_if(partialMapsTemp.begin(), partialMapsTemp.end(), [&currentMap](PartialMap* map)->bool{
-//        return currentMap->id == map->id;
-//    });
-//    if(it != partialMapsTemp.end())
-//    {
-//      mapCopy = *it;
-//    }
-
-//    //pick up
-//    int steps = stepsBetweenKeys[startObject][key];
-//    mapCopy->keys.erase(std::remove(mapCopy->keys.begin(),mapCopy->keys.end(), key), mapCopy->keys.end());
-
-//    //open the door and merge maps
-//    PartialMap* newPartialMap = openDoor(key, partialMapsTemp, mapCopy);
-//    newPartialMap = newPartialMap ? newPartialMap : mapCopy;
-
-//    steps += runForKeys(newPartialMap, key, partialMapsTemp, s);
-//    a--;
-//    index++;
-//    //    if(s.size() == 9)
-//    {
-//      std::cout<<s<<": "<<index<<" "<<a<<std::endl;
-//    }
-//    if(minSteps == -1 || steps < minSteps)
-//    {
-//      minSteps = steps;
-//    }
-//    for(auto map : partialMapsTemp)
-//    {
-//      delete map;
-//    }
-//  }
-//  return minSteps;
-//}
-
-
-
-//void dijkstra(int startX, int startY, const MapOfSymbols& map)
-//{
-//  int visitX = -1;
-//  int visitY = -1;
-//  std::vector<std::pair<int, int>> visited;
-//  std::vector<std::pair<int, int>> toVisit = {{startX, startY}};
-//  while(!toVisit.empty())
-//  {
-//    visitX = toVisit.front().first;
-//    visitY = toVisit.front().second;
-
-//    //do something with current cell
-
-//    for(const auto& neighbourWay : findWays(visitX, visitY, map))
-//    {
-//      const auto& itVisited = std::find(visited.begin(), visited.end(), neighbourWay);
-//      const auto& itToVisit = std::find(toVisit.begin(), toVisit.end(), neighbourWay);
-//      if(itVisited == visited.end() && itToVisit == toVisit.end())
-//      {
-//        toVisit.push_back(neighbourWay);
-//        //do something with neighbour cell
-//      }
-//    }
-//    visited.push_back({visitX, visitY});
-//    if(!toVisit.empty())
-//    {
-//      toVisit.erase(std::remove(toVisit.begin(), toVisit.end(), toVisit.front()), toVisit.end());
-//    }
-//  }
-//}
-
-//@(
-
-//jJxX(R(D(F(A(Z(T(Hv(L(q(c(mI(Y(w(b(G)))))))))k))))u))
-
-//r(d(U(V)))
-
-//f(se(p(QC(M(N(y(W(B(g)))))i))o))
-
-//a(t(K(h)))
-
-//zS(EP(l)O)
-//)
-
-std::vector<MapObject> findClosestObjects(int startX, int startY, const MapOfSymbols& map, MapOfSteps& stepsMap)
+int BFS(MapObject entrance, const std::vector<MapObject>& allKeys)
 {
-  std::vector<MapObject> objects;
+    std::vector<State> queue;
+    queue.insert(queue.begin(), State{{}, entrance, 0});
 
-  stepsMap[startY][startX] = findMinSteps(startX, startY, stepsMap) + 1;
-
-  std::vector<std::pair<int, int>> visited;
-  std::vector<std::pair<int, int>> toVisit = {{startX, startY}};
-  while(!toVisit.empty())
-  {
-    int visitX = toVisit.front().first;
-    int visitY = toVisit.front().second;
-    for(const auto& neighbourWay : findWays(visitX, visitY, map))
+    int result = -1;
+    while(!queue.empty())
     {
-      const auto& itVisited = std::find(visited.begin(), visited.end(), neighbourWay);
-      const auto& itToVisit = std::find(toVisit.begin(), toVisit.end(), neighbourWay);
-      if(itVisited == visited.end() && itToVisit == toVisit.end())
-      {
-        const int wayX = neighbourWay.first;
-        const int wayY = neighbourWay.second;
+        State state = queue.back();
+        queue.pop_back();
+        if(state.gatheredKeys.size() == allKeys.size())
+        {
+            if(result == -1 || result > state.steps)
+            {
+                result = state.steps;
+                continue;
+            }
+        }
+        for(const MapObject& key : allKeys)
+        {
+            if(key == state.currentKey)
+            {
+                continue;
+            }
+            auto gatheredIt = std::find(state.gatheredKeys.begin(), state.gatheredKeys.end(), key);
+            if(gatheredIt != state.gatheredKeys.end())
+            {
+                continue;
+            }
 
-        MapObject object = findObject(wayX, wayY, map);
-        if(object.type == MapObject::Type::Key || object.type == MapObject::Type::Door)
-        {
-          objects.push_back(object);
-        }
-        else
-        {
-          toVisit.push_back(neighbourWay);
-        }
+            auto objects = stepsBetweenKeys[state.currentKey][key].objectsOnWay;
+            bool nextKeyReachable = true;
+            for(const MapObject& object : objects)
+            {
+                if(object.type == MapObject::Type::Key)
+                {
+                    auto gatheredIt = std::find(state.gatheredKeys.begin(), state.gatheredKeys.end(), object);
+                    if(gatheredIt == state.gatheredKeys.end())
+                    {
+                        nextKeyReachable = false;
+                    }
+                    break;
+                }
+                else if(object.type == MapObject::Type::Door)
+                {
+                    char neededKeySymbol = keyForDoor(object.symbol);
+                    auto stateIt = std::find_if(state.gatheredKeys.begin(), state.gatheredKeys.end(),
+                                                [&neededKeySymbol](const MapObject& checkKey)->bool{
+                        return checkKey.symbol == neededKeySymbol;
+                    });
+                    if(stateIt == state.gatheredKeys.end())
+                    {
+                        nextKeyReachable = false;
+                        break;
+                    }
+                }
+            }
+            if(!nextKeyReachable) continue;
 
-        if(stepsMap[wayY][wayX] == -1)
-        {
-          stepsMap[wayY][wayX] = findMinSteps(wayX, wayY, stepsMap) + 1;
+            State newState = state;
+            newState.gatheredKeys.insert(key);
+            newState.steps += stepsBetweenKeys[newState.currentKey][key].steps;
+            newState.currentKey = key;
+
+            auto stateIt = std::find_if(queue.begin(), queue.end(), [&newState](const State& checkState)->bool{
+                return (checkState.gatheredKeys == newState.gatheredKeys) &&
+                       (checkState.currentKey == newState.currentKey);
+            });
+
+            if(stateIt != queue.end())
+            {
+                if(stateIt->steps > newState.steps)
+                {
+                    stateIt->steps = newState.steps;
+                }
+            }
+            else
+            {
+                queue.insert(queue.begin(), newState);
+            }
         }
-      }
     }
-
-    visited.push_back({visitX, visitY});
-    if(!toVisit.empty())
-    {
-      toVisit.erase(std::remove(toVisit.begin(), toVisit.end(), toVisit.front()), toVisit.end());
-    }
-  }
-  return objects;
-}
-
-std::pair<int, int> closestUnexplored(int x, int y, MapOfSymbols& map, MapOfSteps& stepsMap)
-{
-  if(map[y+1][x] != '#' && stepsMap[y+1][x] == -1)
-  {
-    return {x, y+1};
-  }
-  if(map[y-1][x] != '#' && stepsMap[y-1][x] == -1)
-  {
-    return {x, y-1};
-  }
-  if(map[y][x+1] != '#' && stepsMap[y][x+1] == -1)
-  {
-    return {x+1, y};
-  }
-  if(map[y][x-1] != '#' && stepsMap[y][x-1] == -1)
-  {
-    return {x-1, y};
-  }
-  return {-1,-1};
+    return result;
 }
 
 int main()
 {
   MapOfSymbols TheMap;
-  std::vector<MapObject> keys;
-  std::vector<MapObject> doors;
 
   {
     std::ifstream infile("input.txt");
@@ -715,12 +353,12 @@ int main()
           {
           case MapObject::Type::Key:
           {
-            keys.push_back(obj);
+            allKeys.push_back(obj);
             break;
           }
           case MapObject::Type::Door:
           {
-            doors.push_back(obj);
+            allDoors.push_back(obj);
             break;
           }
           case MapObject::Type::Entrance:
@@ -728,6 +366,8 @@ int main()
             entrance = obj;
             break;
           }
+          default:
+              break;
           }
         }
         x++;
@@ -735,143 +375,69 @@ int main()
       y++;
     }
   }
+
+  //part 2
+  auto doorIt = allDoors.begin();
+  while(doorIt != allDoors.end())
+  {
+      char neededKeySymbol = keyForDoor(doorIt->symbol);
+      auto stateIt = std::find_if(allKeys.begin(), allKeys.end(), [&neededKeySymbol](const MapObject& checkKey)->bool{
+          return checkKey.symbol == neededKeySymbol;
+      });
+      if(stateIt == allKeys.end())
+      {
+          doorIt = allDoors.erase(doorIt);
+      }
+      else
+      {
+          doorIt++;
+      }
+  }
+  //part 2 end
   std::cout<<"Entrance: "<<entrance.x<<", "<<entrance.y<<"\n";
 
-  for(const auto& key : keys)
+  for(const auto& key : allKeys)
   {
     calculateDistancesToKeys(key, TheMap);
   }
   calculateDistancesToKeys(entrance, TheMap);
 
-//  std::list<PartialMap*> partialMaps;
-//  CreatePartialMaps(entrance.x, entrance.y, TheMap,partialMaps);
-
+  std::cout<<"\nKeys: \n";
   {
-    std::cout<<"\nKeys: \n";
-    {
       auto it = stepsBetweenKeys.begin();
       while(it != stepsBetweenKeys.end())
       {
-        std::cout<<it->first.symbol<<": ";
+          std::cout<<it->first.symbol<<": ";
 
-        auto it2 = it->second.begin();
-        if(it->first.symbol != '@')
-        {
-          while((it2->first.symbol != it->first.symbol) && (it2 != it->second.end()))
+          auto it2 = it->second.begin();
+          if(it->first.symbol != '@')
           {
-            it2++;
-            std::cout<<std::setw(5)<<"";
+              while((it2->first.symbol != it->first.symbol) && (it2 != it->second.end()))
+              {
+                  it2++;
+                  std::cout<<std::setw(5)<<"";
+              }
           }
-        }
-        else
-        {
-          std::cout<<std::setw(5)<<"";
-        }
-        while(it2 != it->second.end())
-        {
-          std::cout<<std::setw(5)<<it2->second;
-          ++it2;
-        }
-        std::cout<<std::endl;
-        ++it;
+          else
+          {
+              std::cout<<std::setw(5)<<"";
+          }
+          while(it2 != it->second.end())
+          {
+              std::cout<<std::setw(5)<<it2->second.steps;
+              for(auto& object : it2->second.objectsOnWay)
+              {
+                  std::cout<<object.symbol;
+              }
+              ++it2;
+          }
+          std::cout<<std::endl;
+          ++it;
       }
-    }
-//    std::cout<<"\nPartial maps: \n";
-//    {
-//      for(const PartialMap* map : partialMaps)
-//      {
-//        for(const MapObject& door : map->doors)
-//        {
-//          std::cout<<door.symbol<<" ";
-//        }
-//        std::cout<<"\n";
-//        for(const MapObject& key : map->keys)
-//        {
-//          std::cout<<key.symbol<<" ";
-//        }
-//        std::cout<<"\n----------------------"<<std::endl;
-//      }
-//    }
   }
 
-  Tree aMaze;
-  aMaze.value = entrance;
-  {
-    std::function<void(Tree*, MapOfSymbols&, MapOfSteps&)> buildMazeTree;
-    buildMazeTree = [&buildMazeTree](Tree* tree, MapOfSymbols& map, MapOfSteps& stepsMap){
-      auto closestUnexploredPoint = closestUnexplored(tree->value.x, tree->value.y, map, stepsMap);
-      if(closestUnexploredPoint.first != -1 && closestUnexploredPoint.second != -1)
-      {
-        auto objects = findClosestObjects(closestUnexploredPoint.first, closestUnexploredPoint.second, map, stepsMap);
-        for(MapObject& object : objects)
-        {
-          Tree* child = new Tree(object);
-          tree->children.push_back(child);
-          child->parent = tree;
-          map[child->value.y][child->value.x] = '#';
-          buildMazeTree(child, map, stepsMap);
-        }
-      }
-    };
+  int result = BFS(entrance, allKeys);
+  std::cout<<"Result: "<<result<<std::endl;
 
-    MapOfSteps stepsMap(TheMap.size());
-    for(auto& row : stepsMap)
-    {
-      for(int i = 0; i < TheMap[0].size(); ++i)
-      {
-        row.push_back(-1);
-      }
-    }
-
-    MapOfSymbols TheMapCopy = TheMap;
-    auto objects = findClosestObjects(aMaze.value.x, aMaze.value.y, TheMapCopy, stepsMap);
-    for(MapObject& object : objects)
-    {
-      Tree* child = new Tree(object);
-      child->parent = &aMaze;
-      aMaze.children.push_back(child);
-      TheMapCopy[child->value.y][child->value.x] = '#';
-      buildMazeTree(child, TheMapCopy, stepsMap);
-    }
-
-    std::function<bool(Tree*)> removal;
-    removal = [&removal](Tree* tree)->bool{
-      for(Tree* child : tree->children)
-      {
-        if (removal(child))
-        {
-//          delete child;
-        }
-      }
-
-      if(tree->value.type == MapObject::Type::Door && tree->children.empty())
-      {
-        auto& parentChildren = tree->parent->children;
-        parentChildren.erase(std::remove(parentChildren.begin(), parentChildren.end(), tree), parentChildren.end());
-        return true;
-      }
-      return false;
-    };
-    removal(&aMaze);
-
-    std::function<void(Tree*)> printTree;
-    printTree = [&printTree](Tree* tree){
-      std::cout<<tree->value.symbol;
-      if(!tree->children.empty())
-      {
-        std::cout<<"(";
-        for(auto childTree : tree->children)
-        {
-          printTree(childTree);
-        }
-        std::cout<<")"<<std::endl;
-      }
-    };
-    printTree(&aMaze);
-  }
-
-
-//  std::string s;
-//  std::cout<<"\nResult: "<<runForKeys(partialMaps.front(), entrance, partialMaps,s)<<std::endl;
   return 0;
 }
