@@ -55,7 +55,21 @@ std::string stripEscapeCharacters(std::string str)
 
 std::string addEscapeCharacters(std::string str)
 {
-  return str;
+    size_t pos = str.find('\\', 0);
+    while(pos != std::string::npos)
+    {
+        str.insert(pos, "\\");
+        pos = str.find('\\', pos+2);
+    }
+    pos = str.find('"', 0);
+    while(pos != std::string::npos)
+    {
+        str.insert(pos, "\\");
+        pos = str.find('"', pos+2);
+    }
+    str.push_back('"');
+    str.insert(0, "\"");
+    return str;
 }
 
 int main()
@@ -69,15 +83,16 @@ int main()
     stringList.push_back(str);
   }
 
-  int codeCount = 0;
-  int stringCount = 0;
+  size_t codeCount = 0;
+  size_t stringCount = 0;
+  size_t extendedCodeCount = 0;
   for(auto& line : stringList)
   {
     codeCount += line.size();
     stringCount += stripEscapeCharacters(line).size();
-    std::cout<<line<<"  ->  "<<stripEscapeCharacters(line)<<std::endl;
+    extendedCodeCount += addEscapeCharacters(line).size();
   }
   std::cout<<"[Part 1] "<<codeCount - stringCount<<std::endl;
-  std::cout<<"[Part 2] "<<0<<std::endl;
+  std::cout<<"[Part 2] "<<extendedCodeCount - codeCount<<std::endl;
   return 0;
 }
