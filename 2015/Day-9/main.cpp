@@ -2,7 +2,6 @@
 #include <vector>
 #include <string>
 #include <fstream>
-#include <sstream>
 #include <algorithm>
 #include <map>
 #include <set>
@@ -144,6 +143,10 @@ int main()
     }
 
     int result = BFS();
+#ifdef PART1
     std::cout<<"[Part 1] Shortest distance: "<<result<<std::endl;
+#else
+    std::cout<<"[Part 2] Longest distance: "<<result<<std::endl;
+#endif
     return 0;
 }
