@@ -1,10 +1,10 @@
 TEMPLATE = app
-CONFIG += console c++17
+CONFIG += console c++11
 CONFIG -= app_bundle
 CONFIG -= qt
 
 SOURCES += \
         main.cpp
 
-OTHER_FILES += \
-        input.txt
+DISTFILES += \
+    input.txt
