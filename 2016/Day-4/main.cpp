@@ -2,6 +2,9 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <map>
+#include <set>
+#include <algorithm>
 
 struct Room
 {
@@ -10,8 +13,68 @@ struct Room
     std::string checksum;
     bool isReal() const
     {
-        bool real = true;
-        return real;
+        std::vector<std::pair<char, int>> lettersCount;
+        for(const auto& letter : name)
+        {
+            if(letter < 'a' || letter > 'z')
+            {
+                continue;
+            }
+            auto letterPair = std::find_if(lettersCount.begin(), lettersCount.end(),[&letter](const std::pair<char, int>& p)->bool{
+                            return (p.first == letter);
+            });
+            if(letterPair != lettersCount.end())
+            {
+                letterPair->second++;
+            }
+            else
+            {
+                std::pair<char, int> pair = {letter, 1};
+                lettersCount.push_back(pair);
+            }
+        }
+        std::sort(lettersCount.begin(), lettersCount.end(), [](const std::pair<char, int>& p1, const std::pair<char, int>& p2)->bool{
+            if(p1.second != p2.second)
+            {
+                return p1.second > p2.second; //greater first
+            }
+            else
+            {
+                return p2.first > p1.first; //if same -> alphabetical order
+            }
+        });
+
+        std::set<char> checkSumSet;
+        for(const auto& c : checksum)
+        {
+            checkSumSet.insert(c);
+        }
+
+        std::set<char> nameSet;
+        for(int i = 0; i < checksum.size(); ++i)
+        {
+            nameSet.insert(lettersCount[i].first);
+        }
+
+        return (checkSumSet == nameSet);
+    }
+
+    void printRealName() const
+    {
+        std::cout<<"Id: "<<id<<" ";
+        for(char c : name)
+        {
+            if(c == '-')
+            {
+                c = ' ';
+            }
+            else
+            {
+                c = ((c - 'a') + (id % 26))%26 + 'a';
+            }
+            std::cout<<c;
+        }
+        std::cout<<std::endl;
     }
 };
 
@@ -23,7 +86,7 @@ int main()
         std::string roomString;
         while(std::getline(infile, roomString))
         {
-            std::cout<<roomString<<std::endl;
+//            std::cout<<roomString<<std::endl;
             Room room;
 
             size_t lastDashPos = roomString.find_last_of('-');
@@ -38,12 +101,13 @@ int main()
 
             rooms.push_back(room);
 
-            std::cout<<room.name<<" "<<room.id<<" "<<room.checksum<<std::endl<<std::endl;
+//            std::cout<<room.name<<" "<<room.id<<" "<<room.checksum<<std::endl<<std::endl;
         }
     }
     int idSum = 0;
     for(const auto& room : rooms)
     {
+        room.printRealName();
         if(room.isReal())
         {
             idSum += room.id;
