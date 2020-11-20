@@ -1,19 +1,19 @@
 #include <iostream>
 #include "../../utils.h"
 
-struct Node
+struct Tree
 {
     std::string name;
     int weight = 0;
-    std::vector<Node*> children;
-    Node* parent = nullptr;
+    std::vector<Tree*> children;
+    Tree* parent = nullptr;
 };
 
-std::vector<Node*> allNodes;
+std::vector<Tree*> allNodes;
 
-Node* findNodeByName(const std::string& name)
+Tree* findNodeByName(const std::string& name)
 {
-    auto it = std::find_if(allNodes.begin(), allNodes.end(), [name](Node* node)->bool{
+    auto it = std::find_if(allNodes.begin(), allNodes.end(), [name](Tree* node)->bool{
             return (node->name == name);
     });
     if(it != allNodes.end())
@@ -23,10 +23,10 @@ Node* findNodeByName(const std::string& name)
     return nullptr;
 }
 
-Node* findParentNode(Node* childNode)
+Tree* findParentNode(Tree* childNode)
 {
-    auto it = std::find_if(allNodes.begin(), allNodes.end(), [childNode](Node* parentNode)->bool{
-        for(Node* child : parentNode->children)
+    auto it = std::find_if(allNodes.begin(), allNodes.end(), [childNode](Tree* parentNode)->bool{
+        for(Tree* child : parentNode->children)
         {
             if(child == childNode)
             {
@@ -42,9 +42,9 @@ Node* findParentNode(Node* childNode)
     return nullptr;
 }
 
-Node* newNode(const std::string& name)
+Tree* newNode(const std::string& name)
 {
-    Node* node = new Node();
+    Tree* node = new Tree();
     node->name = name;
     allNodes.push_back(node);
     return node;
@@ -52,12 +52,12 @@ Node* newNode(const std::string& name)
 
 //kpjxln (44)
 //kpjxln (44) -> dzzbvkv, gzdxgvj, wsocb, jidxg
-Node* parseNode(std::string stringNode)
+Tree* parseNode(std::string stringNode)
 {
     StringVector words = split(stringNode, " ");
 
     std::string name = words[0];
-    Node* currentNode = findNodeByName(name);
+    Tree* currentNode = findNodeByName(name);
     if(!currentNode)
     {
         currentNode = newNode(name);
@@ -67,7 +67,6 @@ Node* parseNode(std::string stringNode)
     auto parentNode = findParentNode(currentNode);
     if(parentNode)
     {
-        parentNode->children.push_back(currentNode);
         currentNode->parent = parentNode;
     }
 
@@ -80,7 +79,7 @@ Node* parseNode(std::string stringNode)
             {
                 childName.erase(childName.size()-1, 1);
             }
-            Node* childNode = findNodeByName(childName);
+            Tree* childNode = findNodeByName(childName);
             if(!childNode)
             {
                 childNode = newNode(childName);
@@ -92,6 +91,38 @@ Node* parseNode(std::string stringNode)
     return currentNode;
 }
 
+int traverseTree(Tree* node)
+{
+    int weight = node->weight;
+    std::vector<Tree*> childrenNodes = node->children;
+    while(!childrenNodes.empty())
+    {
+        Tree* child = childrenNodes.front();
+        erase<Tree*>(childrenNodes, child);
+
+        weight += child->weight;
+        for(Tree* grandChild : child->children)
+        {
+            childrenNodes.push_back(grandChild);
+        }
+    }
+    return weight;
+}
+
+int findUnbalancedItem(std::vector<int> weights)
+{
+    for(int i = 0; i < static_cast<int>(weights.size())-1; ++i)
+    {
+        int weight = weights[i];
+        auto it = std::find(weights.begin()+i+1, weights.end(), weight);
+        if(it == weights.end())
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
 int main()
 {
     StringVector content = readFile("input.txt");
@@ -100,12 +131,44 @@ int main()
         parseNode(row);
     }
 
-    auto it = std::find_if(allNodes.begin(), allNodes.end(), [](Node* node)->bool{
+    Tree* rootNode = nullptr;
+    auto it = std::find_if(allNodes.begin(), allNodes.end(), [](Tree* node)->bool{
         return (node->parent == nullptr);
     });
     if(it != allNodes.end())
     {
-        std::cout<<"[Part 1] Answer: "<<(*it)->name<<std::endl;
+        rootNode = *it;
+        std::cout<<"[Part 1] Answer: "<<rootNode->name<<std::endl;
     }
+
+    Tree* currentRootNode = rootNode;
+    int diff = -1;
+    while(currentRootNode)
+    {
+        std::vector<int> subTowersWeight;
+        for(Tree* subTower : currentRootNode->children)
+        {
+            subTowersWeight.push_back(traverseTree(subTower));
+        }
+        int index = findUnbalancedItem(subTowersWeight);
+        if(index != -1)
+        {
+            if(index == 0)
+            {
+                diff = (diff == -1) ? (subTowersWeight[index] - subTowersWeight[1]) : diff;
+            }
+            else
+            {
+                diff = (diff == -1) ? (subTowersWeight[index] - subTowersWeight[0]) : diff;
+            }
+            currentRootNode = currentRootNode->children[index];
+        }
+        else
+        {
+            std::cout<<"[Part 2] Answer: "<<currentRootNode->weight - diff<<std::endl;
+            return 0;
+        }
+    }
+
     return 0;
 }

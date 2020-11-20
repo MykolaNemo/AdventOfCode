@@ -6,6 +6,39 @@
 #include <string>
 #include <algorithm>
 #include <fstream>
+#include <functional>
+
+template<class T>
+bool contains(const std::vector<T>& v, const T& item)
+{
+    return std::find(v.begin(), v.end(), item) != v.end();
+}
+
+template<class T>
+bool contains(const std::vector<T>& container, const T& item, typename std::vector<T>::iterator& it)
+{
+    it = std::find(container.begin(), container.end(), item);
+    return it != container.end();
+}
+
+template<class T>
+bool contains(const std::set<T>& container, const T& item)
+{
+    return std::find(container.begin(), container.end(), item) != container.end();
+}
+
+template<class T>
+bool contains(const std::set<T>& container, const T& item, typename std::set<T>::iterator& it)
+{
+    it = std::find(container.begin(), container.end(), item);
+    return it != container.end();
+}
+
+template<class T>
+auto erase(std::vector<T>& v, const T& item)
+{
+    return v.erase(std::remove(v.begin(), v.end(), item), v.end());
+}
 
 using StringVector = std::vector<std::string>;
 
@@ -50,6 +83,10 @@ struct Point
     {
         return (p1.x == p2.x) && (p1.y == p2.y);
     }
+    friend Point operator+(const Point& p1, const Point& p2)
+    {
+        return Point(p1.x + p2.x, p1.y + p2.y);
+    }
     int x = 0;
     int y = 0;
 };
@@ -75,34 +112,26 @@ StringVector split(const std::string& str, const std::string& delim)
     return list;
 }
 
-template<class T>
-bool contains(const std::vector<T>& v, const T& item)
-{
-    return std::find(v.begin(), v.end(), item) != v.end();
-}
 
-template<class T>
-bool contains(const std::vector<T>& container, const T& item, typename std::vector<T>::iterator& it)
+struct Tree
 {
-    it = std::find(container.begin(), container.end(), item);
-    return it != container.end();
-}
+    std::vector<Tree*> children;
+    Tree* parent = nullptr;
+};
 
-template<class T>
-bool contains(const std::set<T>& container, const T& item)
+void traverseTree(Tree* rootNode, std::function<void(Tree*)> f)
 {
-    return std::find(container.begin(), container.end(), item) != container.end();
-}
+    f(rootNode);
+    auto childrenNodes = rootNode->children;
+    while(!childrenNodes.empty())
+    {
+        auto childNode = childrenNodes.front();
+        erase<Tree*>(childrenNodes, childNode);
 
-template<class T>
-bool contains(const std::set<T>& container, const T& item, typename std::set<T>::iterator& it)
-{
-    it = std::find(container.begin(), container.end(), item);
-    return it != container.end();
-}
-
-template<class T>
-auto erase(std::vector<T>& v, const T& item)
-{
-    return v.erase(std::remove(v.begin(), v.end(), item), v.end());
+        f(childNode);
+        for(auto grandChild : childNode->children)
+        {
+            childrenNodes.push_back(grandChild);
+        }
+    }
 }
